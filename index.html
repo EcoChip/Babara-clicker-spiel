@@ -46,7 +46,7 @@
       gap: 10px;
     }
 
-    .top-buttons button {
+    .top-buttons button, .angry-btn {
       border: none;
       padding: 10px 15px;
       font-size: 14px;
@@ -104,7 +104,6 @@
       transform: scale(0.98);
     }
 
-    /* Modal */
     .modal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -143,6 +142,12 @@
       gap: 10px;
       margin-top: 10px;
     }
+
+    .angry-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
   </style>
 </head>
 <body data-theme="light">
@@ -152,6 +157,7 @@
       <button onclick="rebirth()">🌟 Renacer</button>
       <button onclick="openSettings()">⚙️ Ajustes</button>
     </div>
+    <button class="angry-btn" onclick="toggleAngry()">😡 Angry Babara</button>
     <div style="text-align: center;">
       <div id="stats">Babaras: 0<br>BPS: 0</div>
       <img src="babara.png" id="babara" onclick="clickBabara()" />
@@ -159,7 +165,6 @@
   </div>
   <div class="right" id="upgrades"></div>
 
-  <!-- Modal de reinicio -->
   <div class="modal" id="restartModal">
     <div class="modal-content">
       <h2>¿Seguro que quieres reiniciar?</h2>
@@ -169,7 +174,6 @@
     </div>
   </div>
 
-  <!-- Modal de ajustes -->
   <div class="modal" id="settingsModal">
     <div class="modal-content">
       <h2>Ajustes</h2>
@@ -189,6 +193,7 @@
   <script>
     let babaras = 0;
     let bps = 0;
+    let angry = false;
     let upgrades = [
       { name: "Mini Babaras", count: 0, baseCost: 10, bps: 1 },
       { name: "Babara", count: 0, baseCost: 100, bps: 5 },
@@ -210,16 +215,16 @@
     }
 
     function loadGame() {
-      if (localStorage.getItem("babaras")) {
-        babaras = parseFloat(localStorage.getItem("babaras"));
-      }
-      if (localStorage.getItem("upgrades")) {
-        upgrades = JSON.parse(localStorage.getItem("upgrades"));
+      babaras = parseFloat(localStorage.getItem("babaras")) || 0;
+      try {
+        upgrades = JSON.parse(localStorage.getItem("upgrades")) || upgrades;
+      } catch (e) {
+        upgrades = upgrades;
       }
     }
 
     function clickBabara() {
-      babaras += 1;
+      babaras += angry ? 3 : 1;
       const img = document.getElementById("babara");
       img.classList.add("clicked");
       setTimeout(() => img.classList.remove("clicked"), 200);
@@ -227,7 +232,8 @@
     }
 
     function update() {
-      document.getElementById("stats").innerHTML = `Babaras: ${Math.floor(babaras)}<br>BPS: ${bps}`;
+      bps = upgrades.reduce((sum, upg) => sum + upg.count * upg.bps, 0);
+      document.getElementById("stats").innerHTML = `Babaras: ${Math.floor(babaras)}<br>BPS: ${Math.floor(bps)}`;
       renderUpgrades();
       saveGame();
     }
@@ -235,15 +241,13 @@
     function renderUpgrades() {
       const container = document.getElementById("upgrades");
       container.innerHTML = "";
-      bps = 0;
       upgrades.forEach((upg, i) => {
-        bps += upg.count * upg.bps;
         const cost = Math.floor(upg.baseCost * Math.pow(1.25, upg.count));
         const locked = i !== 0 && upgrades[i - 1].count < 10;
         const btn = document.createElement("button");
         btn.className = "upgrade";
         btn.disabled = babaras < cost || locked;
-        btn.innerText = `${upg.name} (${upg.count}) - ${cost} babaras\n+${upg.bps * Math.pow(2, upg.count)} BPS`;
+        btn.innerText = `${upg.name} (${upg.count}) - ${cost} babaras\n+${upg.bps} BPS`;
         btn.onclick = () => {
           if (babaras >= cost && !locked) {
             babaras -= cost;
@@ -291,9 +295,15 @@
       alert("El sistema de renacer se implementará pronto.");
     }
 
+    function toggleAngry() {
+      angry = !angry;
+      const img = document.getElementById("babara");
+      img.src = angry ? "angry-babara.png" : "babara.png";
+    }
+
     document.getElementById("volumeSlider").addEventListener("input", e => {
       const vol = parseFloat(e.target.value);
-      // volumen para el futuro
+      // Volumen no implementado aún
     });
   </script>
 </body>

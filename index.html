@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clicker de Babaras</title>
+  <style>
+    :root {
+      --bg-color: #f0f0f0;
+      --text-color: #111;
+      --button-color: white;
+      --button-text: black;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #222;
+      --text-color: #fff;
+      --button-color: #444;
+      --button-text: #fff;
+    }
+
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(to bottom, white, #aad4ff);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+    }
+
+    .left {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .top-buttons {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .top-buttons button {
+      border: none;
+      padding: 10px 15px;
+      font-size: 14px;
+      border-radius: 12px;
+      background-color: var(--button-color);
+      color: var(--button-text);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+    }
+
+    #babara {
+      width: 400px;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    #babara.clicked {
+      animation: pop 0.2s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    #stats {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .right {
+      flex: 1;
+      padding: 20px;
+      overflow-y: scroll;
+      max-height: 100vh;
+    }
+
+    .upgrade {
+      background-color: var(--button-color);
+      color: var(--button-text);
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease;
+    }
+
+    .upgrade:active {
+      transform: scale(0.98);
+    }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--bg-color);
+      color: var(--text-color);
+      padding: 20px;
+      border-radius: 16px;
+      min-width: 300px;
+    }
+
+    .modal-content button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background-color: var(--button-color);
+      color: var(--button-text);
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .toggle-theme {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="left">
+    <div class="top-buttons">
+      <button onclick="openRestartModal()">🔄 Reiniciar</button>
+      <button onclick="rebirth()">🌟 Renacer</button>
+      <button onclick="openSettings()">⚙️ Ajustes</button>
+    </div>
+    <div style="text-align: center;">
+      <div id="stats">Babaras: 0<br>BPS: 0</div>
+      <img src="babara.png" id="babara" onclick="clickBabara()" />
+    </div>
+  </div>
+  <div class="right" id="upgrades"></div>
+
+  <!-- Modal de reinicio -->
+  <div class="modal" id="restartModal">
+    <div class="modal-content">
+      <h2>¿Seguro que quieres reiniciar?</h2>
+      <p>Perderás tu progreso actual.</p>
+      <button onclick="resetProgress()">Sí, reiniciar</button>
+      <button onclick="closeModal('restartModal')">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Modal de ajustes -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <h2>Ajustes</h2>
+      <label>Volumen:</label>
+      <input type="range" min="0" max="1" step="0.1" id="volumeSlider" />
+      <div class="toggle-theme">
+        <label>Tema:</label>
+        <select onchange="changeTheme(this.value)">
+          <option value="light">Claro</option>
+          <option value="dark">Oscuro</option>
+        </select>
+      </div>
+      <button onclick="closeModal('settingsModal')">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    let babaras = 0;
+    let bps = 0;
+    let upgrades = [
+      { name: "Mini Babaras", count: 0, baseCost: 10, bps: 1 },
+      { name: "Babara", count: 0, baseCost: 100, bps: 5 },
+      { name: "Omega Ultra Babara", count: 0, baseCost: 500, bps: 25 },
+      { name: "Adela", count: 0, baseCost: 2500, bps: 100 },
+      { name: "Adela Pomela", count: 0, baseCost: 10000, bps: 500 },
+      { name: "Adela Ultimate", count: 0, baseCost: 50000, bps: 2500 },
+      { name: "Mini Albrecht", count: 0, baseCost: 100000, bps: 5000 },
+      { name: "Herr Albrecht", count: 0, baseCost: 500000, bps: 10000 },
+      { name: "Mega Albrecht", count: 0, baseCost: 1000000, bps: 50000 },
+      { name: "Mendi", count: 0, baseCost: 2000000, bps: 100000 },
+      { name: "Mendígurke", count: 0, baseCost: 10000000, bps: 500000 },
+      { name: "Omega Gurke Mendi", count: 0, baseCost: 50000000, bps: 1000000 }
+    ];
+
+    function saveGame() {
+      localStorage.setItem("babaras", babaras);
+      localStorage.setItem("upgrades", JSON.stringify(upgrades));
+    }
+
+    function loadGame() {
+      if (localStorage.getItem("babaras")) {
+        babaras = parseFloat(localStorage.getItem("babaras"));
+      }
+      if (localStorage.getItem("upgrades")) {
+        upgrades = JSON.parse(localStorage.getItem("upgrades"));
+      }
+    }
+
+    function clickBabara() {
+      babaras += 1;
+      const img = document.getElementById("babara");
+      img.classList.add("clicked");
+      setTimeout(() => img.classList.remove("clicked"), 200);
+      update();
+    }
+
+    function update() {
+      document.getElementById("stats").innerHTML = `Babaras: ${Math.floor(babaras)}<br>BPS: ${bps}`;
+      renderUpgrades();
+      saveGame();
+    }
+
+    function renderUpgrades() {
+      const container = document.getElementById("upgrades");
+      container.innerHTML = "";
+      bps = 0;
+      upgrades.forEach((upg, i) => {
+        bps += upg.count * upg.bps;
+        const cost = Math.floor(upg.baseCost * Math.pow(1.25, upg.count));
+        const locked = i !== 0 && upgrades[i - 1].count < 10;
+        const btn = document.createElement("button");
+        btn.className = "upgrade";
+        btn.disabled = babaras < cost || locked;
+        btn.innerText = `${upg.name} (${upg.count}) - ${cost} babaras\n+${upg.bps * Math.pow(2, upg.count)} BPS`;
+        btn.onclick = () => {
+          if (babaras >= cost && !locked) {
+            babaras -= cost;
+            upg.count++;
+            update();
+          }
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function tick() {
+      babaras += bps / 10;
+      update();
+    }
+
+    setInterval(tick, 100);
+    loadGame();
+    update();
+
+    function openRestartModal() {
+      document.getElementById("restartModal").style.display = "flex";
+    }
+
+    function resetProgress() {
+      babaras = 0;
+      upgrades.forEach(u => u.count = 0);
+      closeModal('restartModal');
+      update();
+    }
+
+    function openSettings() {
+      document.getElementById("settingsModal").style.display = "flex";
+    }
+
+    function changeTheme(value) {
+      document.body.setAttribute("data-theme", value);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+
+    function rebirth() {
+      alert("El sistema de renacer se implementará pronto.");
+    }
+
+    document.getElementById("volumeSlider").addEventListener("input", e => {
+      const vol = parseFloat(e.target.value);
+      // volumen para el futuro
+    });
+  </script>
+</body>
+</html>
